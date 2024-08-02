@@ -1,13 +1,13 @@
+import * as S from './styles'
 import GameBoard from "./components/board"
-import './App.css'
+
 
 function App() {
 
   return (
-    <div className="App">
-      <h1>Bhaga-Chall Game</h1>
+    <S.ContainerApp>
       <GameBoard />
-    </div>
+    </S.ContainerApp>
   )
 }
 

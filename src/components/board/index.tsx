@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import './styles.css';
 import Square from '../square';
+import tigerImg from "../../assets/tiger.png"
+import goatImg from "../../assets/goat.png"
+import * as S from './styles'
 
 const GameBoard = () => {
   const initialBoard = Array(5).fill(null).map(() => Array(5).fill(null));
@@ -89,11 +91,11 @@ const GameBoard = () => {
 
   const checkGameOver = () => {
       if (goatsEaten >= 5) {
-          alert('Tigers win!');
+          alert('Tigres venceram!');
       } else if (goatsToPlace === 0 && !canGoatMove()) {
-          alert('Tigers win!');
+          alert('Tigres venceram!');
       } else if (!canTigerMove()) {
-          alert('Goats win!');
+          alert('Cabras venceram!');
       }
   };
 
@@ -138,6 +140,8 @@ const GameBoard = () => {
   const renderSquare = (x: number, y: number) => {
       return (
           <Square
+              coordinateTigerSelected={selectedTiger}
+              coordinateEach={[x,y]}
               value={board[x][y]}
               onClick={() => handleClick(x, y)}
               key={`${x}-${y}`}
@@ -147,23 +151,25 @@ const GameBoard = () => {
 
   const renderBoard = () => {
       return board.map((row, x) => (
-          <div className="board-row" key={x}>
+          <S.BoardRow key={x}>
               {row.map((_, y) => renderSquare(x, y))}
-          </div>
+          </S.BoardRow>
       ));
   };
 
   return (
-      <div>
-          <div className='container'>
-            <div className="status">
-                {`Turn: ${turn} | Goats to place: ${goatsToPlace} | Goats eaten: ${goatsEaten}`}
-            </div>
-            <div className="game-board">
+      <S.ContainerBoard>
+          <S.BoardRow>
+            <S.Status>
+                <p>Turno: <span><S.GoatOrTiger src={turn === 'Tiger' ? tigerImg : goatImg}/></span></p>
+                <p>{`Cabras a serem preenchidas: ${goatsToPlace}`}</p>
+                <p>{`Cabras perdidas: ${goatsEaten}`}</p>
+            </S.Status>
+            <S.GameBoardWrapper>
                 {renderBoard()}
-            </div>
-          </div>
-      </div>
+            </S.GameBoardWrapper>
+          </S.BoardRow>
+      </S.ContainerBoard>
   );
 };
 
