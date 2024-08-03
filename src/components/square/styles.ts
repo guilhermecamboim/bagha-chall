@@ -17,6 +17,7 @@ export const GoatOrTiger = styled.img<IGoatOrTiger>`
   position: absolute;
   width: 55px;
   height: 55px;
+  object-fit: cover;
 
   transform: ${({$isTigerSelected}) => $isTigerSelected ? 'scale(1.2)' : 'scale(1)'};
 `

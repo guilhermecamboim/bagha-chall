@@ -4,6 +4,10 @@ import tigerImg from "../../assets/tiger.png"
 import goatImg from "../../assets/goat.png"
 import * as S from './styles'
 
+type ProhibitedMoves = {
+    [key: string]: [number, number][];
+};
+
 const GameBoard = () => {
   const initialBoard = Array(5).fill(null).map(() => Array(5).fill(null));
   const initialTigers = [
@@ -24,65 +28,96 @@ const GameBoard = () => {
   const [goatsToPlace, setGoatsToPlace] = useState(20);
   const [goatsEaten, setGoatsEaten] = useState(0);
 
+  const prohibitedMoves: ProhibitedMoves = {
+    '0,1': [[1, 0], [1, 2]],
+    '0,3': [[1, 2], [1, 4]],
+    '1,0': [[0, 1], [2, 1]],
+    '1,4': [[0, 3], [2, 3]],
+    '3,0': [[2, 1], [4, 1]],
+    '3,4': [[2, 3], [4, 3]],
+    '4,1': [[3, 0], [3, 2]],
+    '4,3': [[3, 2], [3, 4]],
+    '1,1': [[0, 0], [0, 2], [2, 0], [2, 2]],
+    '1,3': [[0, 2], [0, 4], [2, 2], [2, 4]],
+    '3,1': [[2, 0], [2, 2], [4, 0], [4, 2]],
+    '3,3': [[2, 2], [2, 4], [4, 2], [4, 4]]
+};
+
   const handleClick = (x: number, y: number) => {
-      const newBoard = board.map(row => row.slice());
+    const newBoard = board.map(row => row.slice());
 
-      if (turn === 'Goat' && newBoard[x][y] === null && goatsToPlace > 0) {
-          newBoard[x][y] = 'G';
-          setGoatsToPlace(goatsToPlace - 1);
-          setTurn('Tiger');
-      } else if (turn === 'Tiger') {
-          if (newBoard[x][y] === 'T') {
-              setSelectedTiger([x, y]);
-          } else if (selectedTiger) {
-              const [tx, ty] = selectedTiger;
-              const dx = x - tx;
-              const dy = y - ty;
+        if (turn === 'Goat' && newBoard[x][y] === null && goatsToPlace > 0) {
+            newBoard[x][y] = 'G';
+            setGoatsToPlace(goatsToPlace - 1);
+            setTurn('Tiger');
+        } else if (turn === 'Tiger') {
+            if (newBoard[x][y] === 'T') {
+                setSelectedTiger([x, y]);
+            } else if (selectedTiger) {
+                const [tx, ty] = selectedTiger;
+                const dx = x - tx;
+                const dy = y - ty;
 
-              // Ensure the move is within bounds and to an empty square
-              if (newBoard[x][y] === null) {
-                  // Move or capture logic
-                  if (Math.abs(dx) <= 2 && Math.abs(dy) <= 2) {
-                      // Capture logic for horizontal and vertical moves
-                      if (Math.abs(dy) === 2 && dx === 0) {
-                          const my = ty + dy / 2;
-                          if (newBoard[tx][my] === 'G') {
-                              newBoard[tx][my] = null;
-                              setGoatsEaten(goatsEaten + 1);
-                          } else {
-                              return;
-                          }
-                      } else if (Math.abs(dx) === 2 && dy === 0) {
-                          const mx = tx + dx / 2;
-                          if (newBoard[mx][ty] === 'G') {
-                              newBoard[mx][ty] = null;
-                              setGoatsEaten(goatsEaten + 1);
-                          } else {
-                              return;
-                          }
-                      }
+                const tigerPositionKey = `${tx},${ty}`;
+                if (prohibitedMoves[tigerPositionKey]) {
+                    for (const [px, py] of prohibitedMoves[tigerPositionKey]) {
+                        if (x === px && y === py) {
+                            return;
+                        }
+                    }
+                }
 
-                      // Capture logic for diagonal moves
-                      if (Math.abs(dx) === 2 && Math.abs(dy) === 2) {
-                          const mx = tx + dx / 2;
-                          const my = ty + dy / 2;
-                          if (newBoard[mx][my] === 'G') {
-                              newBoard[mx][my] = null;
-                              setGoatsEaten(goatsEaten + 1);
-                          } else {
-                              return;
-                          }
-                      }
-
-                      // Move the tiger
-                      newBoard[tx][ty] = null;
-                      newBoard[x][y] = 'T';
-                      setTigers(tigers.map(t => (t[0] === tx && t[1] === ty ? [x, y] : t)));
-                      setSelectedTiger(null);
-                      setTurn('Goat');
-                  }
-              }
-          }
+                // Ensure the move is within bounds and to an empty square
+                if (newBoard[x][y] === null) {
+                    
+                    // Only allow moves within one square or valid jumps
+                    if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+                        // Simple move
+                        newBoard[tx][ty] = null;
+                        newBoard[x][y] = 'T';
+                        setTigers(tigers.map(t => (t[0] === tx && t[1] === ty ? [x, y] : t)));
+                        setSelectedTiger(null);
+                        setTurn('Goat');
+                    } else if (Math.abs(dx) === 2 && dy === 0) {
+                        // Horizontal capture
+                        const mx = tx + dx / 2;
+                        if (newBoard[mx][ty] === 'G') {
+                            newBoard[mx][ty] = null;
+                            setGoatsEaten(goatsEaten + 1);
+                            newBoard[tx][ty] = null;
+                            newBoard[x][y] = 'T';
+                            setTigers(tigers.map(t => (t[0] === tx && t[1] === ty ? [x, y] : t)));
+                            setSelectedTiger(null);
+                            setTurn('Goat');
+                        }
+                    } else if (dx === 0 && Math.abs(dy) === 2) {
+                        // Vertical capture
+                        const my = ty + dy / 2;
+                        if (newBoard[tx][my] === 'G') {
+                            newBoard[tx][my] = null;
+                            setGoatsEaten(goatsEaten + 1);
+                            newBoard[tx][ty] = null;
+                            newBoard[x][y] = 'T';
+                            setTigers(tigers.map(t => (t[0] === tx && t[1] === ty ? [x, y] : t)));
+                            setSelectedTiger(null);
+                            setTurn('Goat');
+                        }
+                    } else if (Math.abs(dx) === 2 && Math.abs(dy) === 2) {
+                        // Diagonal capture
+                        const mx = tx + dx / 2;
+                        const my = ty + dy / 2;
+                        if (newBoard[mx][my] === 'G') {
+                            newBoard[mx][my] = null;
+                            setGoatsEaten(goatsEaten + 1);
+                            newBoard[tx][ty] = null;
+                            newBoard[x][y] = 'T';
+                            setTigers(tigers.map(t => (t[0] === tx && t[1] === ty ? [x, y] : t)));
+                            setSelectedTiger(null);
+                            setTurn('Goat');
+                        }
+                    }
+                }
+            }
       }
 
       setBoard(newBoard);
