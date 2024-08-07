@@ -316,10 +316,10 @@ const minimax = (board, depth, isMaximizingPlayer, alpha, beta) => {
        const potentialMoves = [
         [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1],
         [x - 1, y - 1], [x - 1, y + 1], [x + 1, y - 1], [x + 1, y + 1],
-        [x - 2, y], [x + 2, y], [x, y - 2], [x, y + 2],
-        [x - 2, y - 2], [x - 2, y + 2], [x + 2, y - 2], [x + 2, y + 2],
+        // [x - 2, y], [x + 2, y], [x, y - 2], [x, y + 2],
+        // [x - 2, y - 2], [x - 2, y + 2], [x + 2, y - 2], [x + 2, y + 2],
       ]
-        console.log(potentialMoves)
+        // console.log(potentialMoves)
   
         potentialMoves.forEach(([nx, ny]) => {
           if (nx >= 0 && ny >= 0 && nx < 5 && ny < 5) {
@@ -337,16 +337,15 @@ const minimax = (board, depth, isMaximizingPlayer, alpha, beta) => {
               if (!isProhibited) {
                 moves.push({ from: [x, y], to: [nx, ny] });
               }
-            } else if (Math.abs(nx - x) === 2 || Math.abs(ny - y) === 2) {
-              const captureMove = [(nx + (nx - x)), (ny + (ny - y))];
-              const [cx, cy] = captureMove;
-                //console.log({nome: `tigrinho-${i}`, posicao:[x, y]});
+            } else if (board[nx][ny] === 'G') {
+              const [cx, cy] = [x + (nx-x)*2,y + (ny-y)*2];
                 if (cx >= 0 && cy >= 0 && cx < 5 && cy < 5 && board[cx][cy] === null) {
                   captures.push({ from: [x, y], to: [cx, cy], capture: [nx, ny] });
                 }
             }
           }
         });
+console.log('moves',moves);
       });
     } else {
       // Generate Goat moves (placing new goats or moving existing ones)
