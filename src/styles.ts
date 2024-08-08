@@ -1,4 +1,4 @@
-import styled from 'styled-components'
+import styled from 'styled-components';
 
 export const ContainerApp = styled.div`
   display: flex;
@@ -7,10 +7,10 @@ export const ContainerApp = styled.div`
   justify-content: center;
   width: 100vw;
   height: 100vh;
-  background-image: url("src/assets/jungle.png");
-`
+  background-image: url('src/assets/jungle.png');
+`;
 
 export const Title = styled.h1`
   color: white;
   background: black;
-`
+`;

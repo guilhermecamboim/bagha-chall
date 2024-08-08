@@ -1,6 +1,6 @@
-import * as S from "./styles"
-import tigerImg from "../../assets/tiger.png"
-import goatImg from "../../assets/goat.png"
+import * as S from './styles';
+import tigerImg from '../../assets/tiger.png';
+import goatImg from '../../assets/goat.png';
 
 interface ISquareProps {
   value: string;
@@ -10,21 +10,28 @@ interface ISquareProps {
 }
 
 const Square = ({ value, onClick, coordinateTigerSelected, coordinateEach }: ISquareProps) => {
-
-    function validateTigerSelected() {
-        if(coordinateTigerSelected && coordinateEach) {
-            if(coordinateTigerSelected[0] === coordinateEach[0] && coordinateTigerSelected[1] === coordinateEach[1]) {
-                return true
-        }
+  function validateTigerSelected() {
+    if (coordinateTigerSelected && coordinateEach) {
+      if (
+        coordinateTigerSelected[0] === coordinateEach[0] &&
+        coordinateTigerSelected[1] === coordinateEach[1]
+      ) {
+        return true;
+      }
     }
-        return false
-    }
+    return false;
+  }
 
-    return (
-        <S.SquareButton onClick={onClick}>
-            {value && <S.GoatOrTiger src={value === 'T' ? tigerImg : goatImg} $isTigerSelected={validateTigerSelected()}/>}
-        </S.SquareButton>
-    );
+  return (
+    <S.SquareButton onClick={onClick}>
+      {value && (
+        <S.GoatOrTiger
+          src={value === 'T' ? tigerImg : goatImg}
+          $isTigerSelected={validateTigerSelected()}
+        />
+      )}
+    </S.SquareButton>
+  );
 };
 
 export default Square;

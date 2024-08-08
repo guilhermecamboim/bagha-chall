@@ -1,4 +1,4 @@
-import styled from "styled-components"
+import styled from 'styled-components';
 
 interface IGoatOrTiger {
   $isTigerSelected: boolean;
@@ -11,7 +11,7 @@ export const SquareButton = styled.button`
   align-items: center;
   justify-content: center;
   border: none;
-`
+`;
 
 export const GoatOrTiger = styled.img<IGoatOrTiger>`
   position: absolute;
@@ -19,5 +19,5 @@ export const GoatOrTiger = styled.img<IGoatOrTiger>`
   height: 55px;
   object-fit: cover;
 
-  transform: ${({$isTigerSelected}) => $isTigerSelected ? 'scale(1.2)' : 'scale(1)'};
-`
+  transform: ${({ $isTigerSelected }) => ($isTigerSelected ? 'scale(1.2)' : 'scale(1)')};
+`;
