@@ -24,8 +24,6 @@ const GameBoard = () => {
       initialBoard[x][y] = 'T';
   });
 
-console.log(initialBoard)
-
   const [board, setBoard] = useState(initialBoard);
   const [tigers, setTigers] = useState(initialTigers);
   const [selectedTiger, setSelectedTiger] = useState<[number, number] | null>(null);
@@ -311,91 +309,117 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
   };
   
 
-const getAvailableMoves = (player: 'Tiger' | 'Goat') => {
-  const moves: { from: number[]; to: number[]; }[] = [];
-  const captures: { from: number[]; to: number[]; capture: number[]; }[] = [];
-
-  if (player === 'Tiger') {
-    tigers.forEach(([x, y]) => {
-      const potentialMoves = [
-        [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1],
-        [x - 1, y - 1], [x - 1, y + 1], [x + 1, y - 1], [x + 1, y + 1],
-      ];
-
-      potentialMoves.forEach(([nx, ny]) => {
-        if (nx >= 0 && ny >= 0 && nx < 5 && ny < 5) {
-          const tigerPositionKey = `${x},${y}`;
-          let isProhibited = false;
-
-          if (board[nx][ny] === null) {
-            if (prohibitedMoves[tigerPositionKey]) {
-              for (const [px, py] of prohibitedMoves[tigerPositionKey]) {
-                if (nx === px && ny === py) {
-                  isProhibited = true;
-                  break;
-                }
-              }
-            }
-            if (!isProhibited) {
-              moves.push({ from: [x, y], to: [nx, ny] });
-            }
-          } else if (board[nx][ny] === 'G') {
-            const [cx, cy] = [x + (nx - x) * 2, y + (ny - y) * 2];
-            if (cx >= 0 && cy >= 0 && cx < 5 && cy < 5 && board[cx][cy] === null) {
-              let isCaptureProhibited = false;
+  const getAvailableMoves = (player: 'Tiger' | 'Goat') => {
+    const moves: { from?: number[]; to: number[]; }[] = [];
+    const captures: { from?: number[]; to: number[]; capture?: number[]; }[] = [];
+  
+    if (player === 'Tiger') {
+      tigers.forEach(([x, y]) => {
+        const potentialMoves = [
+          [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1],
+          [x - 1, y - 1], [x - 1, y + 1], [x + 1, y - 1], [x + 1, y + 1],
+        ];
+  
+        potentialMoves.forEach(([nx, ny]) => {
+          if (nx >= 0 && ny >= 0 && nx < 5 && ny < 5) {
+            const tigerPositionKey = `${x},${y}`;
+            let isProhibited = false;
+  
+            if (board[nx][ny] === null) {
               if (prohibitedMoves[tigerPositionKey]) {
                 for (const [px, py] of prohibitedMoves[tigerPositionKey]) {
-                  if (cx === px && cy === py) {
-                    isCaptureProhibited = true;
+                  if (nx === px && ny === py) {
+                    isProhibited = true;
                     break;
                   }
                 }
               }
-              if (!isCaptureProhibited) {
-                captures.push({ from: [x, y], to: [cx, cy], capture: [nx, ny] });
+              if (!isProhibited) {
+                moves.push({ from: [x, y], to: [nx, ny] });
+              }
+            } else if (board[nx][ny] === 'G') {
+              const [cx, cy] = [x + (nx - x) * 2, y + (ny - y) * 2];
+              if (cx >= 0 && cy >= 0 && cx < 5 && cy < 5 && board[cx][cy] === null) {
+                let isCaptureProhibited = false;
+                if (prohibitedMoves[tigerPositionKey]) {
+                  for (const [px, py] of prohibitedMoves[tigerPositionKey]) {
+                    if (cx === px && cy === py) {
+                      isCaptureProhibited = true;
+                      break;
+                    }
+                  }
+                }
+                if (!isCaptureProhibited) {
+                  captures.push({ from: [x, y], to: [cx, cy], capture: [nx, ny] });
+                }
               }
             }
           }
-        }
+        });
       });
-    });
-  } else {
-    // Generate Goat moves (placing new goats or moving existing ones)
-    // To be implemented based on game rules
-  }
-  return { captures, regularMoves: moves };
-};
-
+    } else {
+      // Generate Goat moves (placing new goats)
+      for (let x = 0; x < 5; x++) {
+        for (let y = 0; y < 5; y++) {
+          if (board[x][y] === null) {
+            moves.push({ to: [x, y] });
+          }
+        }
+      }
+    }
+    return { captures, regularMoves: moves };
+  };
   
-  // Function to make a move on the board
+
   const makeMove = (board: boardType, move: { from: any; to: any; capture?: any; }) => {
     const newBoard = board.map(row => row.slice());
     const { from, to, capture } = move;
-    const [fx, fy] = from;
     const [tx, ty] = to;
   
-    newBoard[fx][fy] = null;
-    newBoard[tx][ty] = 'T'; // or 'G' based on the move
+    if (from) {
+      const [fx, fy] = from;
+      newBoard[fx][fy] = null;
+    }
+  
+    newBoard[tx][ty] = from ? 'T' : 'G'; // 'T' if it's a tiger move, 'G' if it's a goat placement
+  
     if (capture) {
       const [cx, cy] = capture;
       newBoard[cx][cy] = null; // Remove the captured goat
-      setGoatsEaten(goatsEaten + 1)
+      setGoatsEaten(goatsEaten + 1);
     }
+  
     return newBoard;
   };
   
+  
   const aiMove = () => {
-    const { move } = minimax(board, 3, true, -Infinity, Infinity);
-    if (move) {
-      const newBoard = makeMove(board, move);
-      setBoard(newBoard);
-      setTigers(tigers.map(t => (t[0] === move.from[0] && t[1] === move.from[1] ? [move.to[0], move.to[1]] : t)));
-      setTurn('Goat');
+    if (turn === 'Tiger') {
+      const { move } = minimax(board, 3, true, -Infinity, Infinity);
+      if (move) {
+        const newBoard = makeMove(board, move);
+        setBoard(newBoard);
+        setTigers(tigers.map(t => (t[0] === move.from[0] && t[1] === move.from[1] ? [move.to[0], move.to[1]] : t)));
+        setTurn('Goat');
+      }
+    } else if (turn === 'Goat' && goatsToPlace > 0) {
+      const { regularMoves } = getAvailableMoves('Goat');
+      if (regularMoves.length > 0) {
+        const move = regularMoves[Math.floor(Math.random() * regularMoves.length)];
+        const newBoard = makeMove(board, { from: null, to: move.to });
+        setBoard(newBoard);
+        setGoatsToPlace(goatsToPlace - 1);
+        setTurn('Tiger');
+      }
     }
   };
   
+  
   useEffect(() => {
     if (isAI && playerRole === 'Goat' && turn === 'Tiger') {
+      aiMove();
+    }
+    if (isAI && playerRole === 'Tiger' && turn === 'Goat') {
       aiMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
