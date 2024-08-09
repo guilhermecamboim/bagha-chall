@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Square from '../square';
 import tigerImg from "../../assets/tiger.png";
 import goatImg from "../../assets/goat.png";
@@ -128,17 +128,7 @@ if (newBoard[x][y] === null) {
     checkGameOver();
   };
 
-  const checkGameOver = () => {
-    if (goatsEaten >= 5) {
-        setWinner('Tiger')
-    } else if (goatsToPlace === 0 && goatsEaten < 5) {
-        setWinner('Goat')
-    } else if (!canTigerMove){
-        setWinner('Goat')
-    }
-  };
-
-  const canTigerMove = () => {
+  const canTigerMove = useCallback(() => {
     for (const [x, y] of tigers) {
         const moves = [
             [x - 1, y], [x + 1, y],
@@ -155,7 +145,17 @@ if (newBoard[x][y] === null) {
         }
     }
     return false;
-  };
+  }, [board, tigers]);
+
+  const checkGameOver = useCallback(() => {
+    if (goatsEaten >= 5) {
+        setWinner('Tiger')
+    } else if (goatsToPlace === 0 && goatsEaten < 5) {
+        setWinner('Goat')
+    } else if (!canTigerMove){
+        setWinner('Goat')
+    }
+  }, [canTigerMove, goatsEaten, goatsToPlace]);
 
   // Calculate the number of potential captures for the currently moving tiger
   const calculate_potential_captures = (board: boardType, tiger: any) => {
@@ -263,15 +263,137 @@ if (newBoard[x][y] === null) {
     return score;
   };
 
+  const evaluate_board_with_goat_focus = (board: boardType) => {
+  let score = 0;
+  const vulnerableGoats = calculate_vulnerable_goats(board);
+  
+  // Pesos para diferentes aspectos do jogo
+  const W1 = -50; // Penalidade alta para cabras vulneráveis
+  const W2 = 5;   // Peso para a mobilidade dos tigres (menor peso que antes)
+
+  tigers.forEach(tiger => {
+    const tigerMobility = calculate_tiger_mobility(board, tiger);
+    score += (W2 * tigerMobility);
+  });
+
+  score += (W1 * vulnerableGoats);
+
+  return score;
+};
+
+function isSafePosition(x, y, board) {
+  const directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],         [0, 1],
+      [1, -1], [1, 0], [1, 1]
+  ];
+
+  for (const [dx, dy] of directions) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx >= 0 && ny >= 0 && nx < board.length && ny < board.length) {
+          if (board[nx][ny] === "T") {
+              return false;
+          }
+      }
+  }
+  return true;
+}
+
+function distanceFromTigers(x, y, board) {
+  let minDistance = Infinity;
+  for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board.length; j++) {
+          if (board[i][j] === "T") {
+              const distance = Math.abs(x - i) + Math.abs(y - j);
+              minDistance = Math.min(minDistance, distance);
+          }
+      }
+  }
+  return minDistance;
+}
+
+function getPossibleGoatPositions(board) {
+  const n = board.length;
+  let hasGoat = false;
+  const possiblePositions = [];
+  const directions = [
+      [-1, 0], [1, 0],
+      [0, -1], [0, 1]
+  ];
+
+  // Verifica se existe alguma cabra no tabuleiro
+  for (let x = 0; x < n; x++) {
+      for (let y = 0; y < n; y++) {
+          if (board[x][y] === "G") {
+              hasGoat = true;
+              break;
+          }
+      }
+      if (hasGoat) break;
+  }
+
+  // Se não houver nenhuma cabra, adiciona uma no centro
+  if (!hasGoat) {
+      const centerX = Math.floor(n / 2);
+      const centerY = Math.floor(n / 2);
+      return [[centerX, centerY]];
+  }
+
+  // Se houver cabras, encontra todas as posições possíveis
+  for (let x = 0; x < n; x++) {
+      for (let y = 0; y < n; y++) {
+          if (board[x][y] === null && isSafePosition(x, y, board)) {
+              let isAdjacentToGoat = false;
+              for (const [dx, dy] of directions) {
+                  const nx = x + dx;
+                  const ny = y + dy;
+                  if (nx >= 0 && ny >= 0 && nx < n && ny < n && board[nx][ny] === "G") {
+                      isAdjacentToGoat = true;
+                      break;
+                  }
+              }
+              if (isAdjacentToGoat) {
+                  possiblePositions.push([x, y]);
+              }
+          }
+      }
+  }
+
+  // Se nenhuma posição segura for encontrada próxima a uma cabra, busca a posição mais distante dos tigres
+  if (possiblePositions.length === 0) {
+      let maxDistance = -1;
+      let bestPosition = null;
+
+      for (let x = 0; x < n; x++) {
+          for (let y = 0; y < n; y++) {
+              if (board[x][y] === null) {
+                  const distance = distanceFromTigers(x, y, board);
+                  if (distance > maxDistance) {
+                      maxDistance = distance;
+                      bestPosition = [x, y];
+                  }
+              }
+          }
+      }
+
+      if (bestPosition !== null) {
+          return [bestPosition];
+      }
+  }
+
+  return possiblePositions;
+}
+
 const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, alpha: number, beta: number) => {
     if (depth === 0 || checkGameOver()) {
-      return { score: evaluate_board(board) };
+      return { score:  turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board(board) };
     }
   
     let bestMove = null;
     if (isMaximizingPlayer) {
       let maxEval = -Infinity;
-      const { captures = [], regularMoves = [] } = getAvailableMoves('Tiger');
+      const { captures = [], regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' ? 'Tiger' : 'Goat');
       const availableMoves = captures.length > 0 ? captures : regularMoves;
   
       for (const move of availableMoves) {
@@ -289,7 +411,7 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
       return { score: maxEval, move: bestMove };
     } else {
       let minEval = Infinity;
-      const { regularMoves = [] } = getAvailableMoves('Goat');
+      const { regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' ? 'Goat' : 'Tiger');
       const availableMoves = regularMoves;
   
       for (const move of availableMoves) {
@@ -358,14 +480,9 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
         });
       });
     } else {
-      // Generate Goat moves (placing new goats)
-      for (let x = 0; x < 5; x++) {
-        for (let y = 0; y < 5; y++) {
-          if (board[x][y] === null) {
-            moves.push({ to: [x, y] });
-          }
-        }
-      }
+      getPossibleGoatPositions(board).forEach((eachGoatOption) => {
+        moves.push({ to: eachGoatOption });
+      })
     }
     return { captures, regularMoves: moves };
   };
@@ -424,6 +541,10 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAI, playerRole, turn]);
+
+  useEffect(() => {
+    checkGameOver()
+  }, [checkGameOver, goatsEaten, goatsToPlace])
 
   const renderSquare = (x: number, y: number) => {
     return (
