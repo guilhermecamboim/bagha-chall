@@ -73,7 +73,7 @@ export const FirstStepContainer = styled.div`
     align-items: center;
     gap: 5px;
     cursor: pointer;
-    min-width: 18rem;
+    min-width: 20rem;
     min-height: 3rem;
 
     &:hover {
@@ -129,5 +129,18 @@ export const WrapperWinner = styled.div`
     &:hover {
       transform: scale(1.05);
     }
+  }
+`
+
+export const ContainerCheckbox = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  p {
+    font-size: 14px;
+  }
+  input {
+    accent-color: #107a26;
   }
 `

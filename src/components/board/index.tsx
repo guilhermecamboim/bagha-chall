@@ -32,7 +32,9 @@ const GameBoard = () => {
   const [goatsEaten, setGoatsEaten] = useState(0);
   const [isAI, setIsAI] = useState(false);
   const [playerRole, setPlayerRole] = useState('Goat');
+  const [algorithmType, setAlgorithmType] = useState<'miniMax' | 'podaAlfa'>('podaAlfa');
   const [gameStarted, setGameStarted] = useState(false);
+  const [playAlone, setPlayAlone] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
 
 const prohibitedMoves: ProhibitedMoves = {
@@ -385,7 +387,45 @@ function getPossibleGoatPositions(board) {
   return possiblePositions;
 }
 
-const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, alpha: number, beta: number) => {
+const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean) => {
+  if (depth === 0 || checkGameOver()) {
+    return { score: turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board(board) };
+  }
+
+  let bestMove = null;
+  if (isMaximizingPlayer) {
+    let maxEval = -Infinity;
+    const { captures = [], regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' && turn === 'Tiger' ? 'Tiger' : 'Goat');
+    const availableMoves = captures.length > 0 ? captures : regularMoves;
+
+    for (const move of availableMoves) {
+      const newBoard = makeMove(board, move);
+      const evaluate = minimax(newBoard, depth - 1, false).score;
+      if (evaluate > maxEval) {
+        maxEval = evaluate;
+        bestMove = move;
+      }
+    }
+    return { score: maxEval, move: bestMove };
+  } else {
+    let minEval = Infinity;
+    const { regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' && turn === 'Goat' ? 'Goat' : 'Tiger');
+    const availableMoves = regularMoves;
+
+    for (const move of availableMoves) {
+      const newBoard = makeMove(board, move);
+      const evaluate = minimax(newBoard, depth - 1, true).score;
+      if (evaluate < minEval) {
+        minEval = evaluate;
+        bestMove = move;
+      }
+    }
+    return { score: minEval, move: bestMove };
+  }
+};
+
+
+const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer: boolean, alpha: number, beta: number) => {
     if (depth === 0 || checkGameOver()) {
       return { score:  turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board(board) };
     }
@@ -393,12 +433,12 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
     let bestMove = null;
     if (isMaximizingPlayer) {
       let maxEval = -Infinity;
-      const { captures = [], regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' ? 'Tiger' : 'Goat');
+      const { captures = [], regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' && turn === 'Tiger' ? 'Tiger' : 'Goat');
       const availableMoves = captures.length > 0 ? captures : regularMoves;
   
       for (const move of availableMoves) {
         const newBoard = makeMove(board, move);
-        const evaluate = minimax(newBoard, depth - 1, false, alpha, beta).score;
+        const evaluate = minimaxPodaAlfaBeta(newBoard, depth - 1, false, alpha, beta).score;
         if (evaluate > maxEval) {
           maxEval = evaluate;
           bestMove = move;
@@ -411,12 +451,12 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
       return { score: maxEval, move: bestMove };
     } else {
       let minEval = Infinity;
-      const { regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' ? 'Goat' : 'Tiger');
+      const { regularMoves = [] } = getAvailableMoves(playerRole === 'Goat' && turn === 'Goat' ? 'Goat' : 'Tiger');
       const availableMoves = regularMoves;
   
       for (const move of availableMoves) {
         const newBoard = makeMove(board, move);
-        const evaluate = minimax(newBoard, depth - 1, true, alpha, beta).score;
+        const evaluate = minimaxPodaAlfaBeta(newBoard, depth - 1, true, alpha, beta).score;
         if (evaluate < minEval) {
           minEval = evaluate;
           bestMove = move;
@@ -512,31 +552,42 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
   
   const aiMove = () => {
     if (turn === 'Tiger') {
-      const { move } = minimax(board, 3, true, -Infinity, Infinity);
+      const { move } = algorithmType === "podaAlfa" ? minimaxPodaAlfaBeta(board, 3, true, -Infinity, Infinity) : minimax(board, 3, true);
       if (move) {
         const newBoard = makeMove(board, move);
         setBoard(newBoard);
         setTigers(tigers.map(t => (t[0] === move.from[0] && t[1] === move.from[1] ? [move.to[0], move.to[1]] : t)));
-        setTurn('Goat');
+        if(playAlone){
+          setTimeout(() => setTurn('Goat'), 1500);
+        } else {
+          setTurn('Goat');
+        }
       }
     } else if (turn === 'Goat' && goatsToPlace > 0) {
-      const { regularMoves } = getAvailableMoves('Goat');
-      if (regularMoves.length > 0) {
-        const move = regularMoves[Math.floor(Math.random() * regularMoves.length)];
+      const { move } = algorithmType === "podaAlfa" ? minimaxPodaAlfaBeta(board, 3, true, -Infinity, Infinity) : minimax(board, 3, true);
+      if (move) {
         const newBoard = makeMove(board, { from: null, to: move.to });
         setBoard(newBoard);
         setGoatsToPlace(goatsToPlace - 1);
-        setTurn('Tiger');
+        if(playAlone){
+          setTimeout(() => setTurn('Tiger'), 1000);
+        } else {
+          setTurn('Tiger');
+        }
       }
     }
   };
   
   
   useEffect(() => {
-    if (isAI && playerRole === 'Goat' && turn === 'Tiger') {
-      aiMove();
-    }
-    if (isAI && playerRole === 'Tiger' && turn === 'Goat') {
+    if(!playAlone) {
+      if (isAI && playerRole === 'Goat' && turn === 'Tiger') {
+        aiMove();
+      }
+      if (isAI && playerRole === 'Tiger' && turn === 'Goat') {
+        aiMove();
+      }
+    } else {
       aiMove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,10 +622,32 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean, a
     {!gameStarted ? (
         <S.FirstStepContainer>
           <h1>Bhaga Chall</h1>
+          <h2>Escolha o algoritimo da IA</h2>
+          <S.ContainerCheckbox>
+          <div>
+            <input
+              type="radio"
+              id="radioPodaAlfa"
+              checked={algorithmType === "podaAlfa"}
+              onChange={() => {setAlgorithmType('podaAlfa')}}
+            />
+            <label htmlFor="radioPodaAlfa">Poda Alfa Beta</label>
+          </div>
+          <div>
+            <input
+              type="radio"
+              id="radioMiniMax"
+              checked={algorithmType === "miniMax"}
+              onChange={() => {setAlgorithmType('miniMax')}}
+            />
+            <label htmlFor="radioMiniMax">Mini max</label>
+          </div>
+          </S.ContainerCheckbox>
           <h2>Escolha o tipo de jogo</h2>
           <button onClick={() => { setIsAI(false); setPlayerRole('Goat'); setGameStarted(true); }}>{`Jogador vs Jogador`}</button>
-          <button onClick={() => { setIsAI(true); setPlayerRole('Goat'); setGameStarted(true); }}>{`Jogador vs AI  👉 Jogar com a`} <span><S.GoatOrTiger src={goatImg}/></span></button>
-          <button onClick={() => { setIsAI(true); setPlayerRole('Tiger'); setGameStarted(true); }}>{`Jogador vs AI  👉 Jogar com o`} <span><S.GoatOrTiger src={tigerImg}/></span></button>
+          <button onClick={() => { setIsAI(true); setPlayerRole('Goat'); setGameStarted(true); }}>{`Jogador vs IA  👉 Jogar com a`} <span><S.GoatOrTiger src={goatImg}/></span></button>
+          <button onClick={() => { setIsAI(true); setPlayerRole('Tiger'); setGameStarted(true); }}>{`Jogador vs IA  👉 Jogar com o`} <span><S.GoatOrTiger src={tigerImg}/></span></button>
+          <button onClick={() => { setIsAI(true); setPlayAlone(true); setGameStarted(true); }}>{`IA  vs IA`}</button>
         </S.FirstStepContainer>
       ) : (
       <S.ContainerBoard>
