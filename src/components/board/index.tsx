@@ -558,7 +558,7 @@ const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer
         setBoard(newBoard);
         setTigers(tigers.map(t => (t[0] === move.from[0] && t[1] === move.from[1] ? [move.to[0], move.to[1]] : t)));
         if(playAlone){
-          setTimeout(() => setTurn('Goat'), 1500);
+          setTimeout(() => setTurn('Goat'), 750);
         } else {
           setTurn('Goat');
         }
@@ -570,7 +570,7 @@ const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer
         setBoard(newBoard);
         setGoatsToPlace(goatsToPlace - 1);
         if(playAlone){
-          setTimeout(() => setTurn('Tiger'), 1000);
+          setTimeout(() => setTurn('Tiger'), 750);
         } else {
           setTurn('Tiger');
         }
