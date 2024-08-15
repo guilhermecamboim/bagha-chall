@@ -621,7 +621,7 @@ const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer
     <>
     {!gameStarted ? (
         <S.FirstStepContainer>
-          <h1>Bhaga Chall</h1>
+          <h1>Bagha Chall</h1>
           <h2>Escolha o algoritimo da IA</h2>
           <S.ContainerCheckbox>
           <div>
