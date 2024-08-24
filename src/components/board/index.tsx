@@ -6,6 +6,11 @@ import * as S from './styles';
 
 type Cell = 'T' | 'G' | null;
 type boardType = Cell[][];
+interface IMoveTigers { 
+  from: number[]; 
+  to: number[]; 
+  capture?: number[]; 
+}
 
 type ProhibitedMoves = {
   [key: string]: [number, number][];
@@ -76,16 +81,15 @@ const newBoard = board.map(row => row.slice());
 }
 
 if (newBoard[x][y] === null) {
-  // Only allow moves within one square or valid jumps
   if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
-    // Simple move
+    // Movimento simples
     newBoard[tx][ty] = null;
     newBoard[x][y] = 'T';
     setTigers(tigers.map(t => (t[0] === tx && t[1] === ty ? [x, y] : t)));
     setSelectedTiger(null);
     setTurn('Goat');
   } else if (Math.abs(dx) === 2 && dy === 0) {
-    // Horizontal capture
+    // Captura horizontal
     const mx = tx + dx / 2;
     if (newBoard[mx][ty] === 'G') {
      newBoard[mx][ty] = null;
@@ -97,7 +101,7 @@ if (newBoard[x][y] === null) {
      setTurn('Goat');
     }
   } else if (dx === 0 && Math.abs(dy) === 2) {
-   // Vertical capture
+   // Captura vertical
    const my = ty + dy / 2;
    if (newBoard[tx][my] === 'G') {
     newBoard[tx][my] = null;
@@ -109,7 +113,7 @@ if (newBoard[x][y] === null) {
     setTurn('Goat');
    }
   } else if (Math.abs(dx) === 2 && Math.abs(dy) === 2) {
-     // Diagonal capture
+     // Captura diagonal
      const mx = tx + dx / 2;
      const my = ty + dy / 2;
      if (newBoard[mx][my] === 'G') {
@@ -159,8 +163,7 @@ if (newBoard[x][y] === null) {
     }
   }, [canTigerMove, goatsEaten, goatsToPlace]);
 
-  // Calculate the number of potential captures for the currently moving tiger
-  const calculate_potential_captures = (board: boardType, tiger: any) => {
+  const calculate_potential_captures = (board: boardType, tiger: [number, number]) => {
     const [x, y] = tiger;
     let captures = 0;
     const moves = [
@@ -178,8 +181,7 @@ if (newBoard[x][y] === null) {
     return captures;
   };
 
-  // Calculate the mobility of the currently moving tiger
-  const calculate_tiger_mobility = (board: boardType, tiger: number[] | [any, any]) => {
+  const calculate_tiger_mobility = (board: boardType, tiger: [number, number]) => {
     const [x, y] = tiger;
     let mobility = 0;
     const moves = [
@@ -191,7 +193,7 @@ if (newBoard[x][y] === null) {
     for (const [dx, dy] of moves) {
       const [nx, ny] = [x + dx, y + dy];
   
-      // Check if the move is within bounds and the destination square is empty
+      // Verifica se o movimento está dentro dos limites e se o quadrado de destino está vazio
       if (nx >= 0 && ny >= 0 && nx < 5 && ny < 5 && board[nx][ny] === null) {
         const tigerPositionKey = `${x},${y}`;
         let isProhibited = false;
@@ -213,13 +215,10 @@ if (newBoard[x][y] === null) {
     return mobility;
   };
   
-
-  // Check if the tiger is blocked
-  const is_tiger_blocked = (board: boardType, tiger: number[] | [any, any]) => {
+  const is_tiger_blocked = (board: boardType, tiger: [number, number]) => {
     return calculate_tiger_mobility(board, tiger) === 0;
   };
 
-  // Calculate the number of goats in vulnerable positions
   const calculate_vulnerable_goats = (board: boardType) => {
     let vulnerableGoats = 0;
     for (let x = 0; x < 5; x++) {
@@ -243,19 +242,18 @@ if (newBoard[x][y] === null) {
     return vulnerableGoats;
   };
 
-  // Adjust the evaluation function
   const evaluate_board = (board: boardType) => {
     let score = 0;
     tigers.forEach(tiger => {
-      const potentialCaptures = calculate_potential_captures(board, tiger);
-      const tigerMobility = calculate_tiger_mobility(board, tiger);
-      const blockedTiger = is_tiger_blocked(board, tiger);
+      const potentialCaptures = calculate_potential_captures(board, tiger as [number, number]);
+      const tigerMobility = calculate_tiger_mobility(board, tiger as [number, number]);
+      const blockedTiger = is_tiger_blocked(board, tiger as [number, number]);
       const vulnerableGoats = calculate_vulnerable_goats(board);
   
-      const W1 = 15; // Increased weight for potential captures
-      const W2 = 5;  // Weight for tiger mobility
-      const W3 = 10; // Increased weight for blocked tiger
-      const W4 = 5;  // Adjusted weight for vulnerable goats
+      const W1 = 15; // Aumento de peso para possíveis capturas
+      const W2 = 5;  // Peso para mobilidade do tigre
+      const W3 = 10; // Aumento de peso para tigre bloqueado
+      const W4 = 5;  // Peso ajustado para cabras vulneráveis
   
       score += (W1 * potentialCaptures) +
                (W2 * tigerMobility) -
@@ -269,12 +267,11 @@ if (newBoard[x][y] === null) {
   let score = 0;
   const vulnerableGoats = calculate_vulnerable_goats(board);
   
-  // Pesos para diferentes aspectos do jogo
   const W1 = -50; // Penalidade alta para cabras vulneráveis
   const W2 = 5;   // Peso para a mobilidade dos tigres (menor peso que antes)
 
   tigers.forEach(tiger => {
-    const tigerMobility = calculate_tiger_mobility(board, tiger);
+    const tigerMobility = calculate_tiger_mobility(board, tiger as [number, number]);
     score += (W2 * tigerMobility);
   });
 
@@ -283,7 +280,7 @@ if (newBoard[x][y] === null) {
   return score;
 };
 
-function isSafePosition(x, y, board) {
+function isSafePosition(x: number, y: number, board: boardType) {
   const directions = [
       [-1, -1], [-1, 0], [-1, 1],
       [0, -1],         [0, 1],
@@ -302,7 +299,7 @@ function isSafePosition(x, y, board) {
   return true;
 }
 
-function distanceFromTigers(x, y, board) {
+function distanceFromTigers(x: number, y: number, board: boardType) {
   let minDistance = Infinity;
   for (let i = 0; i < board.length; i++) {
       for (let j = 0; j < board.length; j++) {
@@ -315,7 +312,7 @@ function distanceFromTigers(x, y, board) {
   return minDistance;
 }
 
-function getPossibleGoatPositions(board) {
+function getPossibleGoatPositions(board: boardType) {
   const n = board.length;
   let hasGoat = false;
   const possiblePositions = [];
@@ -388,7 +385,7 @@ function getPossibleGoatPositions(board) {
 }
 
 const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean) => {
-  if (depth === 0 || checkGameOver()) {
+  if (depth === 0) {
     return { score: turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board(board) };
   }
 
@@ -426,7 +423,7 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean) =
 
 
 const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer: boolean, alpha: number, beta: number) => {
-    if (depth === 0 || checkGameOver()) {
+    if (depth === 0) {
       return { score:  turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board(board) };
     }
   
@@ -528,7 +525,7 @@ const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer
   };
   
 
-  const makeMove = (board: boardType, move: { from: any; to: any; capture?: any; }) => {
+  const makeMove = (board: boardType, move: { from?: number[] | undefined | null; to: number[]; capture?: number[]; }) => {
     const newBoard = board.map(row => row.slice());
     const { from, to, capture } = move;
     const [tx, ty] = to;
@@ -538,17 +535,16 @@ const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer
       newBoard[fx][fy] = null;
     }
   
-    newBoard[tx][ty] = from ? 'T' : 'G'; // 'T' if it's a tiger move, 'G' if it's a goat placement
+    newBoard[tx][ty] = from ? 'T' : 'G';
   
     if (capture) {
       const [cx, cy] = capture;
-      newBoard[cx][cy] = null; // Remove the captured goat
+      newBoard[cx][cy] = null;
       setGoatsEaten(goatsEaten + 1);
     }
   
     return newBoard;
   };
-  
   
   const aiMove = () => {
     if (turn === 'Tiger') {
@@ -556,7 +552,7 @@ const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer
       if (move) {
         const newBoard = makeMove(board, move);
         setBoard(newBoard);
-        setTigers(tigers.map(t => (t[0] === move.from[0] && t[1] === move.from[1] ? [move.to[0], move.to[1]] : t)));
+        setTigers(tigers.map(t => (t[0] === (move as IMoveTigers).from[0] && t[1] === (move as IMoveTigers).from[1] ? [move.to[0], move.to[1]] : t)));
         if(playAlone){
           setTimeout(() => setTurn('Goat'), 750);
         } else {
