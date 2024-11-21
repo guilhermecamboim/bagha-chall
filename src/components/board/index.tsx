@@ -242,7 +242,7 @@ if (newBoard[x][y] === null) {
     return vulnerableGoats;
   };
 
-  const evaluate_board = (board: boardType) => {
+  const evaluate_board_with_tiger_focus = (board: boardType) => {
     let score = 0;
     tigers.forEach(tiger => {
       const potentialCaptures = calculate_potential_captures(board, tiger as [number, number]);
@@ -268,7 +268,7 @@ if (newBoard[x][y] === null) {
   const vulnerableGoats = calculate_vulnerable_goats(board);
   
   const W1 = -50; // Penalidade alta para cabras vulneráveis
-  const W2 = 5;   // Peso para a mobilidade dos tigres (menor peso que antes)
+  const W2 = 5;   // Peso para a mobilidade dos tigres
 
   tigers.forEach(tiger => {
     const tigerMobility = calculate_tiger_mobility(board, tiger as [number, number]);
@@ -386,7 +386,7 @@ function getPossibleGoatPositions(board: boardType) {
 
 const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean) => {
   if (depth === 0) {
-    return { score: turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board(board) };
+    return { score: turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board_with_tiger_focus(board) };
   }
 
   let bestMove = null;
@@ -424,7 +424,7 @@ const minimax = (board: boardType, depth: number, isMaximizingPlayer: boolean) =
 
 const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer: boolean, alpha: number, beta: number) => {
     if (depth === 0) {
-      return { score:  turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board(board) };
+      return { score:  turn === 'Goat' ? evaluate_board_with_goat_focus(board) : evaluate_board_with_tiger_focus(board) };
     }
   
     let bestMove = null;
@@ -641,8 +641,8 @@ const minimaxPodaAlfaBeta = (board: boardType, depth: number, isMaximizingPlayer
           </S.ContainerCheckbox>
           <h2>Escolha o tipo de jogo</h2>
           <button onClick={() => { setIsAI(false); setPlayerRole('Goat'); setGameStarted(true); }}>{`Jogador vs Jogador`}</button>
-          <button onClick={() => { setIsAI(true); setPlayerRole('Goat'); setGameStarted(true); }}>{`Jogador vs IA  👉 Jogar com a`} <span><S.GoatOrTiger src={goatImg}/></span></button>
-          <button onClick={() => { setIsAI(true); setPlayerRole('Tiger'); setGameStarted(true); }}>{`Jogador vs IA  👉 Jogar com o`} <span><S.GoatOrTiger src={tigerImg}/></span></button>
+          <button onClick={() => { setIsAI(true); setPlayerRole('Goat'); setGameStarted(true); }}>{`Jogador vs IA - Jogar com a`} <span><S.GoatOrTiger src={goatImg}/></span></button>
+          <button onClick={() => { setIsAI(true); setPlayerRole('Tiger'); setGameStarted(true); }}>{`Jogador vs IA - Jogar com o`} <span><S.GoatOrTiger src={tigerImg}/></span></button>
           <button onClick={() => { setIsAI(true); setPlayAlone(true); setGameStarted(true); }}>{`IA  vs IA`}</button>
         </S.FirstStepContainer>
       ) : (

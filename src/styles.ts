@@ -8,6 +8,7 @@ export const ContainerApp = styled.div`
   width: 100vw;
   height: 100vh;
   background-image: url('src/assets/jungle.png');
+  background-size: cover;
 `;
 
 export const Title = styled.h1`
